@@ -19,7 +19,25 @@ const validateBook = [
 router.get("/", async (req, res) => {
   try {
     const books = await Book.findAll();
-    res.status(200).json({ status: true, message: "OK", books });
+
+    const formattedBooks = books.map((book) => {
+      const formattedImage = JSON.parse(book.image);
+      const formattedSample = JSON.parse(book.sample);
+      const formattedTag = JSON.parse(book.tag);
+      const formattedPdf = book.pdf.replace(/"/g, "");
+
+      return {
+        ...book.toJSON(),
+        image: formattedImage,
+        sample: formattedSample,
+        tag: formattedTag,
+        pdf: formattedPdf,
+      };
+    });
+
+    res
+      .status(200)
+      .json({ status: true, message: "OK", books: formattedBooks });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });

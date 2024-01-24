@@ -25,7 +25,16 @@ const validatePlan = [
 router.get("/", async (req, res) => {
   try {
     const plans = await Plan.findAll();
-    res.status(200).json({ status: true, message: "OK", plans });
+    const formattedPlans = plans.map((plan) => {
+      const formattedBenefits = JSON.parse(plan.benefits);
+      return {
+        ...plan.toJSON(),
+        benefits: formattedBenefits,
+      };
+    });
+    res
+      .status(200)
+      .json({ status: true, message: "OK", plans: formattedPlans });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });
