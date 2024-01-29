@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { check, validationResult } = require("express-validator");
 const Book = require("../model/book");
+const Rating = require("../model/rating");
 
 const validateBook = [
   check("image").isArray().withMessage("Image must be an array of URLs"),
@@ -18,26 +19,32 @@ const validateBook = [
 
 router.get("/", async (req, res) => {
   try {
-    const books = await Book.findAll();
-
-    const formattedBooks = books.map((book) => {
-      const formattedImage = JSON.parse(book.image);
-      const formattedSample = JSON.parse(book.sample);
-      const formattedTag = JSON.parse(book.tag);
-      const formattedPdf = book.pdf.replace(/"/g, "");
-
-      return {
-        ...book.toJSON(),
-        image: formattedImage,
-        sample: formattedSample,
-        tag: formattedTag,
-        pdf: formattedPdf,
-      };
+    const books = await Book.findAll({
+      order: [["createdAt", "DESC"]],
     });
 
-    res
-      .status(200)
-      .json({ status: true, message: "OK", books: formattedBooks });
+    const finalbooks = [];
+    for (const book of books) {
+      const ratings = await Rating.findAll({ where: { bookId: book.id } });
+      const totalRating = ratings.reduce((sum, rating) => sum + rating.rate, 0);
+      const averageRating =
+        ratings.length > 0 ? totalRating / ratings.length : 0;
+      const finalBook = {
+        ...book.toJSON(),
+        image: JSON.parse(book.image),
+        sample: JSON.parse(book.sample),
+        tag: JSON.parse(book.tag),
+        pdf: book.pdf.replace(/"/g, ""),
+        totalRating: ratings.length,
+        averageRating: parseFloat(averageRating).toFixed(1),
+      };
+      finalbooks.push(finalBook);
+    }
+    res.status(200).json({
+      status: true,
+      message: "OK",
+      books: finalbooks,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });
@@ -55,6 +62,65 @@ router.post("/", validateBook, async (req, res) => {
   try {
     const newBook = await Book.create(req.body);
     res.status(200).json({ status: true, message: "Book added", newBook });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const book = await Book.findByPk(id);
+
+    const overAllRating = [];
+    let count5 = 0,
+      count4 = 0,
+      count3 = 0,
+      count2 = 0,
+      count1 = 0;
+
+    const ratings = await Rating.findAll({ where: { bookId: id } });
+    const totalRating = ratings.reduce((sum, rating) => {
+      switch (rating.rate) {
+        case 5:
+          count5++;
+          break;
+        case 4:
+          count4++;
+          break;
+        case 3:
+          count3++;
+          break;
+        case 2:
+          count2++;
+          break;
+        case 1:
+          count1++;
+          break;
+        default:
+          break;
+      }
+      return sum + rating.rate;
+    }, 0);
+
+    const averageRating = ratings.length > 0 ? totalRating / ratings.length : 0;
+    for (const rating of ratings) {
+      overAllRating.push(rating);
+    }
+
+    const finalBook = {
+      ...book.toJSON(),
+      image: JSON.parse(book.image),
+      sample: JSON.parse(book.sample),
+      tag: JSON.parse(book.tag),
+      pdf: book.pdf.replace(/"/g, ""),
+      averageRating: parseFloat(averageRating).toFixed(1),
+      overAllRating,
+      ratingCounts: { count5, count4, count3, count2, count1 },
+    };
+
+    res.status(200).json({ status: true, message: "OK", book: finalBook });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });
@@ -122,4 +188,25 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+router.delete("/rating/:id", async (req, res) => {
+  const ratingId = req.params.id;
+
+  try {
+    const rating = await Rating.findByPk(ratingId);
+
+    if (!rating) {
+      return res
+        .status(404)
+        .json({ status: false, message: "Rating not found" });
+    }
+
+    await rating.destroy();
+    res
+      .status(200)
+      .json({ status: true, message: "Rating deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ status: false, message: "Server Error" });
+  }
+});
 module.exports = router;

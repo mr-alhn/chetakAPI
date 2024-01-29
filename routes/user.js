@@ -4,6 +4,8 @@ const { check, validationResult } = require("express-validator");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../model/user");
+const Premium = require("../model/premium");
+const Plan = require("../model/plan");
 const authenticateToken = require("../middleware/userAuth");
 
 const secretKey = "RGVlcGFrS3VzaHdhaGFBbGhuOTM5OTM2OTg1NA==";
@@ -193,9 +195,75 @@ router.post("/user/changePassword", async (req, res) => {
 
 router.get("/users/all", async (req, res) => {
   try {
-    const users = await User.findAll();
-    res.status(200).json({ status: true, message: "OK", users });
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const users = await User.findAndCountAll({
+      order: [["createdAt", "DESC"]],
+      limit: parseInt(limit),
+      offset: offset,
+    });
+
+    const totalPages = Math.ceil(users.count / limit);
+    const currentPage = parseInt(page);
+
+    const finalList = [];
+    for (const user of users.rows) {
+      const hasPlan = await Premium.findOne({
+        where: {
+          userId: user.id,
+        },
+      });
+
+      var newUser = {};
+      if (hasPlan) {
+        newUser = { ...user.dataValues, isPremium: true };
+        user.isPremium = true;
+      } else {
+        newUser = { ...user.dataValues, isPremium: false };
+      }
+      finalList.push(newUser);
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "OK",
+      users: finalList,
+      totalCount: users.count,
+      totalPages,
+      currentPage,
+    });
   } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/user/id/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ status: false, message: "User not found" });
+    }
+
+    const finalPlans = [];
+    const plans = await Premium.findAll({ where: { userId: id } });
+    for (const plan of plans) {
+      const subs = await Plan.findByPk(plan.planId);
+      const newPlan = { ...plan.dataValues, price: subs.finalPrice };
+      finalPlans.push(newPlan);
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "OK",
+      user,
+      subscriptionHistory: finalPlans,
+    });
+  } catch (e) {
+    console.log(e);
     res.status(500).json({ status: false, message: "Server Error" });
   }
 });

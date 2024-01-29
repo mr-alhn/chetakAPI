@@ -9,6 +9,7 @@ const Rating = require("../model/rating");
 const validateLibraryItem = [
   check("bookId").isNumeric().withMessage("Invalid bookId"),
   check("orderId").notEmpty().withMessage("Invalid orderId"),
+  check("from").notEmpty().withMessage("from is required"),
 ];
 
 router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
@@ -20,8 +21,13 @@ router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
   }
 
   const userId = req.user.user.id;
-  const { bookId, orderId } = req.body;
+  const { bookId, orderId, from } = req.body;
 
+  if (from !== "Subscriptions" && from !== "E-Com") {
+    return res
+      .status(501)
+      .json({ status: false, message: "Invalid from type" });
+  }
   try {
     const existingLibraryItem = await Library.findOne({
       where: { userId, bookId },

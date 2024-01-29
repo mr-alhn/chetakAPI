@@ -36,10 +36,12 @@ router.post(
         });
       }
 
+      const status = true;
       const newPremiumSubscription = await Premium.create({
         userId,
         planId,
         orderId,
+        status,
       });
       res.status(200).json({
         status: true,

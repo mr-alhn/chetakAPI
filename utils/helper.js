@@ -8,6 +8,8 @@ const Book = require("../model/book");
 const Rating = require("../model/rating");
 const Plan = require("../model/plan");
 const Coupon = require("../model/coupon");
+const Premium = require("../model/premium");
+const { check, validationResult } = require("express-validator");
 
 const storage = multer.diskStorage({
   destination: "./uploads/",
@@ -50,14 +52,18 @@ router.get("/books", authenticateToken, async (req, res) => {
 
     const finalbooks = [];
     for (const book of books) {
-      const ratings = await Rating.findAll();
+      const ratings = await Rating.findAll({ where: { bookId: book.id } });
       const totalRating = ratings.reduce((sum, rating) => sum + rating.rate, 0);
       const averageRating =
         ratings.length > 0 ? totalRating / ratings.length : 0;
       const finalBook = {
-        ...book.dataValues,
+        ...book.toJSON(),
+        image: JSON.parse(book.image),
+        sample: JSON.parse(book.sample),
+        tag: JSON.parse(book.tag),
+        pdf: book.pdf.replace(/"/g, ""),
         totalRating: ratings.length,
-        averageRating,
+        averageRating: parseFloat(averageRating).toFixed(1),
       };
 
       if (finalBook.isTending) {
@@ -102,8 +108,12 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
     }
 
     const finalBook = {
-      ...book.dataValues,
-      averageRating,
+      ...book.toJSON(),
+      image: JSON.parse(book.image),
+      sample: JSON.parse(book.sample),
+      tag: JSON.parse(book.tag),
+      pdf: book.pdf.replace(/"/g, ""),
+      averageRating: parseFloat(averageRating).toFixed(1),
       userRating,
       overAllRating,
     };
@@ -136,7 +146,16 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
 router.get("/plans", authenticateToken, async (req, res) => {
   try {
     const plans = await Plan.findAll();
-    res.status(200).json({ status: true, message: "OK", plans });
+    const formattedPlans = plans.map((plan) => {
+      const formattedBenefits = JSON.parse(plan.benefits);
+      return {
+        ...plan.toJSON(),
+        benefits: formattedBenefits,
+      };
+    });
+    res
+      .status(200)
+      .json({ status: true, message: "OK", plans: formattedPlans });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });
@@ -152,5 +171,93 @@ router.get("/coupon", authenticateToken, async (req, res) => {
     res.status(500).send({ status: false, message: "Server Error" });
   }
 });
+
+const validatePremiumSubscription = [
+  check("planId").isNumeric().withMessage("Invalid planId"),
+  check("orderId").isString().withMessage("Invalid orderId"),
+];
+
+function calculatePurchaseAndExpireDate(months) {
+  const purchaseDate = new Date();
+  const expireDate = new Date();
+  expireDate.setMonth(expireDate.getMonth() + months);
+  const formatDate = (date) => {
+    const options = {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    };
+    return date.toLocaleDateString("en-US", options);
+  };
+  return {
+    purchaseDate: formatDate(purchaseDate),
+    expireDate: formatDate(expireDate),
+  };
+}
+
+router.post(
+  "/plans/buy",
+  authenticateToken,
+  validatePremiumSubscription,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(400)
+        .json({ status: false, message: "Error", errors: errors.array() });
+    }
+
+    const userId = req.user.user.id;
+    const { planId, orderId } = req.body;
+
+    try {
+      const existingPremiumSubscription = await Premium.findOne({
+        where: { userId, planId },
+      });
+
+      if (existingPremiumSubscription) {
+        return res.status(400).json({
+          status: false,
+          message: "Premium subscription already exists for the user",
+        });
+      }
+
+      const plan = await Plan.findByPk(planId);
+
+      if (!plan) {
+        return res.status(400).json({
+          status: false,
+          message: "Premium subscription not found",
+        });
+      }
+
+      const { purchaseDate, expireDate } = calculatePurchaseAndExpireDate(
+        plan.duration
+      );
+      console.log(expireDate);
+
+      const status = true;
+      const newPremiumSubscription = await Premium.create({
+        userId,
+        planId,
+        orderId,
+        status,
+        purchasedAt: purchaseDate,
+        expireOn: expireDate,
+      });
+      res.status(200).json({
+        status: true,
+        message: "Premium subscription added",
+        newPremiumSubscription,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send({ status: false, message: "Server Error" });
+    }
+  }
+);
 
 module.exports = router;

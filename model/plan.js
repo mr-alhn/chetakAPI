@@ -14,19 +14,19 @@ const Plan = sequelize.define("plans", {
     type: DataTypes.JSON,
     allowNull: false,
   },
-  duration: {
+  durationTitle: {
     type: DataTypes.STRING,
+    allowNull: false,
+  },
+  duration: {
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   price: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },
-  priceInMonth: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  priceInYears: {
+  finalPrice: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },

@@ -9,14 +9,12 @@ const validatePlan = [
   check("benefits")
     .isArray()
     .withMessage("Benefits must be an array of strings"),
+  check("durationTitle").notEmpty().withMessage("durationTitle is required"),
   check("duration").notEmpty().withMessage("Duration is required"),
   check("price").isNumeric().withMessage("Price must be a numeric value"),
-  check("priceInMonth")
+  check("finalPrice")
     .isNumeric()
     .withMessage("Price in Month must be a numeric value"),
-  check("priceInYears")
-    .isNumeric()
-    .withMessage("Price in Years must be a numeric value"),
   check("savePercent")
     .isInt({ min: 0, max: 100 })
     .withMessage("Save percent must be between 0 and 100"),
@@ -53,10 +51,10 @@ router.post("/", validatePlan, async (req, res) => {
     image,
     title,
     benefits,
+    durationTitle,
     duration,
     price,
-    priceInMonth,
-    priceInYears,
+    finalPrice,
     savePercent,
   } = req.body;
 
@@ -65,10 +63,10 @@ router.post("/", validatePlan, async (req, res) => {
       image,
       title,
       benefits,
+      durationTitle,
       duration,
       price,
-      priceInMonth,
-      priceInYears,
+      finalPrice,
       savePercent,
     });
     res.status(200).json({ status: true, message: "Plan added", newPlan });
@@ -91,10 +89,10 @@ router.put("/:id", validatePlan, async (req, res) => {
     image,
     title,
     benefits,
+    durationTitle,
     duration,
     price,
-    priceInMonth,
-    priceInYears,
+    finalPrice,
     savePercent,
   } = req.body;
 
@@ -108,10 +106,10 @@ router.put("/:id", validatePlan, async (req, res) => {
     existingPlan.image = image;
     existingPlan.title = title;
     existingPlan.benefits = benefits;
+    existingPlan.durationTitle = durationTitle;
     existingPlan.duration = duration;
     existingPlan.price = price;
-    existingPlan.priceInMonth = priceInMonth;
-    existingPlan.priceInYears = priceInYears;
+    existingPlan.finalPrice = finalPrice;
     existingPlan.savePercent = savePercent;
 
     await existingPlan.save();

@@ -54,6 +54,8 @@ app.use("/cart", require("./routes/cart"));
 app.use("/favorite", require("./routes/favorite"));
 app.use("/library", require("./routes/library"));
 app.use("/premium", require("./routes/premium"));
+app.use("/admin", require("./routes/admin"));
+app.use("/dashboard", require("./routes/dashboard"));
 
 //Helper
 app.use("/", require("./utils/helper"));
