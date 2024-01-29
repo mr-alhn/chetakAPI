@@ -9,7 +9,19 @@ const Rating = require("../model/rating");
 const Plan = require("../model/plan");
 const Coupon = require("../model/coupon");
 const Premium = require("../model/premium");
+const User = require("../model/user");
+const SubAdmin = require("../model/subAdmin");
+const SubLib = require("../model/subLib");
 const { check, validationResult } = require("express-validator");
+
+//Firebase Start
+const admin = require("firebase-admin");
+const serviceAccount = require("../chetak-books-firebase-adminsdk-jmjqy-4ce293f047.json");
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://chetak-books-default-rtdb.firebaseio.com/",
+});
+//Firebase End
 
 const storage = multer.diskStorage({
   destination: "./uploads/",
@@ -46,7 +58,7 @@ router.get("/banner", authenticateToken, async (req, res) => {
 
 router.get("/books", authenticateToken, async (req, res) => {
   try {
-    const books = await Book.findAll();
+    const books = await Book.findAll({ where: { isPremium: false } });
     const recommended = [];
     const trending = [];
 
@@ -145,6 +157,7 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
 
 router.get("/plans", authenticateToken, async (req, res) => {
   try {
+    const userId = req.user.user.id;
     const plans = await Plan.findAll();
     const formattedPlans = plans.map((plan) => {
       const formattedBenefits = JSON.parse(plan.benefits);
@@ -153,9 +166,54 @@ router.get("/plans", authenticateToken, async (req, res) => {
         benefits: formattedBenefits,
       };
     });
-    res
-      .status(200)
-      .json({ status: true, message: "OK", plans: formattedPlans });
+
+    const finalPlan = [];
+    for (const plan of formattedPlans) {
+      const premium = await Premium.findOne({
+        where: { userId, planId: plan.id },
+      });
+
+      if (premium) {
+        const books = await Book.findAll({
+          where: { subscriptionId: plan.id },
+        });
+        const finalbooks = [];
+        for (const book of books) {
+          const ratings = await Rating.findAll({
+            where: { bookId: book.id },
+          });
+          const totalRating = ratings.reduce(
+            (sum, rating) => sum + rating.rate,
+            0
+          );
+          const averageRating =
+            ratings.length > 0 ? totalRating / ratings.length : 0;
+          const finalBook = {
+            ...book.toJSON(),
+            image: JSON.parse(book.image),
+            sample: JSON.parse(book.sample),
+            tag: JSON.parse(book.tag),
+            pdf: book.pdf.replace(/"/g, ""),
+            totalRating: ratings.length,
+            averageRating: parseFloat(averageRating).toFixed(1),
+          };
+
+          if (finalBook.isTending) {
+            trending.push(finalBook);
+          }
+          if (finalBook.isRecommended) {
+            recommended.push(finalBook);
+          }
+
+          finalbooks.push(finalBook);
+        }
+        finalPlan.push({ ...plan.toJSON(), books: finalbooks });
+      } else {
+        finalPlan.push({ ...plan.toJSON() });
+      }
+    }
+
+    res.status(200).json({ status: true, message: "OK", plans: finalPlan });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });
@@ -259,5 +317,86 @@ router.post(
     }
   }
 );
+
+router.post("/notification", async (req, res) => {
+  try {
+    const { title, body, sendTo } = req.body;
+
+    var tokens = [];
+    if (sendTo == "freeUsers") {
+      const users = await User.findAll();
+      for (const user of users) {
+        const plan = await Premium.findOne({ where: { userId: user.id } });
+        if (!plan) {
+          tokens.push(user.toJson());
+        }
+      }
+    } else if (sendTo == "paidUsers") {
+      const users = await User.findAll();
+      for (const user of users) {
+        const plan = await Premium.findOne({ where: { userId: user.id } });
+        if (plan) {
+          tokens.push(user.toJson());
+        }
+      }
+    } else {
+      const admins = await SubAdmin.findAll();
+      for (const admin of admins) {
+        tokens.push(admin.toJSON());
+      }
+    }
+
+    for (const token of tokens) {
+      if (token.notificationToken !== null) {
+        const message = {
+          data: {
+            title: title,
+            body: body,
+            type: "pushNotification",
+          },
+          token: token.notificationToken,
+        };
+        await admin.messaging().send(message);
+      }
+    }
+
+    res.status(200).json({ status: true, message: "Success" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.post("/subLib", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user.id;
+    const { bookId, planId } = req.body;
+
+    await SubLib.create({ userId, bookId, planId });
+
+    res.status(200).json({ status: true, message: "Success" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.delete("/subLib/:id", authenticateToken, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const subLib = await SubLib.findByPk(id);
+
+    if (!subLib) {
+      return res.status(200).json({ status: true, message: "Success" });
+    }
+
+    await subLib.distroy();
+
+    res.status(200).json({ status: true, message: "Success" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
 
 module.exports = router;

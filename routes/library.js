@@ -5,6 +5,10 @@ const Library = require("../model/library");
 const Book = require("../model/book");
 const authenticateToken = require("../middleware/userAuth");
 const Rating = require("../model/rating");
+const Cart = require("../model/cart");
+const Transaction = require("../model/transaction");
+const Premium = require("../model/premium");
+const SubLib = require("../model/subLib");
 
 const validateLibraryItem = [
   check("bookId").isNumeric().withMessage("Invalid bookId"),
@@ -21,30 +25,23 @@ router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
   }
 
   const userId = req.user.user.id;
-  const { bookId, orderId, from } = req.body;
+  const { orderId } = req.body;
 
-  if (from !== "Subscriptions" && from !== "E-Com") {
-    return res
-      .status(501)
-      .json({ status: false, message: "Invalid from type" });
-  }
+  await Transaction.create({ type: "Book", traId: orderId });
+
   try {
-    const existingLibraryItem = await Library.findOne({
-      where: { userId, bookId },
-    });
+    const books = await Cart.findAll({ where: { userId } });
 
-    if (existingLibraryItem) {
-      return res.status(400).json({
-        status: false,
-        message: "Book is already in the library",
+    for (const book of books) {
+      await Library.create({
+        userId,
+        bookId: book.id,
       });
     }
 
-    const newLibraryItem = await Library.create({ userId, bookId, orderId });
     res.status(200).json({
       status: true,
-      message: "Book added to the library",
-      newLibraryItem,
+      message: "Success",
     });
   } catch (error) {
     console.error(error);
@@ -72,16 +69,58 @@ router.get("/", authenticateToken, async (req, res) => {
         const averageRating =
           ratings.length > 0 ? totalRating / ratings.length : 0;
         const finalBook = {
-          ...product.dataValues,
+          ...product.toJSON(),
+          image: JSON.parse(product.image),
+          sample: JSON.parse(product.sample),
+          tag: JSON.parse(product.tag),
+          pdf: product.pdf.replace(/"/g, ""),
           totalRating: ratings.length,
-          averageRating,
+          averageRating: parseFloat(averageRating).toFixed(1),
         };
-        const finalLib = { ...item.dataValues, book: finalBook };
-        items.push(finalLib);
+
+        items.push(finalBook);
       }
     }
 
-    res.status(200).json({ status: true, message: "OK", libraryItems: items });
+    const subscription = await Premium.findAll({ where: { userId } });
+    const plansBooks = [];
+    for (const sub of subscription) {
+      const libs = await SubLib.findAll({ where: { userId, planId: sub.id } });
+
+      const books = [];
+      for (const lib of libs) {
+        const book = await Book.findByPk(lib.bookId);
+        const ratings = await Rating.findAll({
+          where: { bookId: book.id },
+        });
+        const totalRating = ratings.reduce(
+          (sum, rating) => sum + rating.rate,
+          0
+        );
+        const averageRating =
+          ratings.length > 0 ? totalRating / ratings.length : 0;
+        const finalBook = {
+          ...book.toJSON(),
+          image: JSON.parse(book.image),
+          sample: JSON.parse(book.sample),
+          tag: JSON.parse(book.tag),
+          pdf: book.pdf.replace(/"/g, ""),
+          totalRating: ratings.length,
+          averageRating: parseFloat(averageRating).toFixed(1),
+        };
+        books.push({ ...book.toJSON });
+      }
+      plansBooks.push({ ...sub.toJSON(), books });
+    }
+
+    res
+      .status(200)
+      .json({
+        status: true,
+        message: "OK",
+        libraryItems: items,
+        premiumBook: plansBooks,
+      });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });

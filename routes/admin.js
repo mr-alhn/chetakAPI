@@ -7,7 +7,7 @@ router.post("/create", async (req, res) => {
   try {
     await Admin.create(req.body);
 
-    res.status(200).json({ status: false, message: "Success" });
+    res.status(200).json({ status: true, message: "Success" });
   } catch (e) {
     console.log(e);
     res.status(500).json({ status: false, message: "Server Error" });
@@ -26,7 +26,9 @@ router.post("/login", async (req, res) => {
         .json({ status: true, message: "Incorrect phone number" });
     }
 
-    res.status(200).json({ status: true, message: "Success", admin });
+    res
+      .status(200)
+      .json({ status: true, message: "Success", isAdmin: true, admin });
   } catch (e) {
     console.log(e);
     res.status(500).json({ status: false, message: "Server Error" });

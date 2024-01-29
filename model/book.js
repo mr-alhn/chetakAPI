@@ -48,6 +48,14 @@ const Book = sequelize.define("books", {
     allowNull: false,
     defaultValue: false,
   },
+  isPremium: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+  },
+  subscriptionId: {
+    type: DataTypes.INTEGER,
+    default: 0,
+  },
 });
 
 module.exports = Book;

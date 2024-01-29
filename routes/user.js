@@ -72,7 +72,7 @@ router.post("/login", async (req, res) => {
   const { phone, password } = req.body;
 
   try {
-    const user = await User.findOne({ where: { phone } });
+    const user = await User.findOne({ where: { phone, status: true } });
 
     if (!user) {
       return res
@@ -262,6 +262,26 @@ router.get("/user/id/:id", async (req, res) => {
       user,
       subscriptionHistory: finalPlans,
     });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.delete("/delete/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({ status: false, message: "User not found" });
+    }
+
+    user.status = false;
+    await user.save();
+
+    res.status(201).json({ status: true, message: "Success" });
   } catch (e) {
     console.log(e);
     res.status(500).json({ status: false, message: "Server Error" });

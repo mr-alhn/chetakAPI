@@ -25,6 +25,9 @@ const User = sequelize.define("users", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  notificationToken: {
+    type: DataTypes.STRING,
+  },
 });
 
 module.exports = User;
