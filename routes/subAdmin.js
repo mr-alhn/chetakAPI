@@ -75,4 +75,24 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.delete("/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const subAdmin = await SubAdmin.findByPk(id);
+
+    if (!subAdmin) {
+      return res
+        .status(404)
+        .json({ status: false, message: "Sub admin not found" });
+    }
+
+    await subAdmin.distroy();
+    res.status(200).json({ status: true, message: "Success" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
 module.exports = router;
