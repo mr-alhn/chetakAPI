@@ -87,7 +87,7 @@ router.delete("/:id", async (req, res) => {
         .json({ status: false, message: "Sub admin not found" });
     }
 
-    await subAdmin.distroy();
+    await subAdmin.destroy();
     res.status(200).json({ status: true, message: "Success" });
   } catch (e) {
     console.log(e);
