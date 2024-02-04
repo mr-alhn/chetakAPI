@@ -207,9 +207,9 @@ router.get("/plans", authenticateToken, async (req, res) => {
 
           finalbooks.push(finalBook);
         }
-        finalPlan.push({ ...plan.toJSON(), books: finalbooks });
+        finalPlan.push({ ...plan, books: finalbooks });
       } else {
-        finalPlan.push({ ...plan.toJSON() });
+        finalPlan.push({ ...plan });
       }
     }
 
