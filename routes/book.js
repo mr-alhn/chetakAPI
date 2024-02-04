@@ -136,8 +136,20 @@ router.put("/:id", validateBook, async (req, res) => {
   }
 
   const bookId = req.params.id;
-  const { image, name, author, sample, tag, description, price, sellPrice } =
-    req.body;
+  const {
+    image,
+    name,
+    author,
+    sample,
+    tag,
+    description,
+    price,
+    sellPrice,
+    isTending,
+    isRecommended,
+    isPremium,
+    subscriptionId,
+  } = req.body;
 
   try {
     const existingBook = await Book.findByPk(bookId);
@@ -154,6 +166,10 @@ router.put("/:id", validateBook, async (req, res) => {
     existingBook.description = description;
     existingBook.price = price;
     existingBook.sellPrice = sellPrice;
+    existingBook.isTending = isTending;
+    existingBook.isRecommended = isRecommended;
+    existingBook.isPremium = isPremium;
+    existingBook.subscriptionId = subscriptionId;
 
     await existingBook.save();
 
