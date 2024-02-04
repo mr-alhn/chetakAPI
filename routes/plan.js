@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
     const formattedPlans = plans.map((plan) => {
       const formattedBenefits = JSON.parse(plan.benefits);
       return {
-        ...plan.toJSON(),
+        ...plan.dataValues,
         benefits: formattedBenefits,
       };
     });

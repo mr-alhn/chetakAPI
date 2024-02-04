@@ -48,12 +48,15 @@ router.post(
         .json({ status: false, message: "Email already exist" });
     }
 
+    const defaultStatus = true;
+
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = await User.create({
         name,
         phone,
         email,
+        status: defaultStatus,
         password: hashedPassword,
       });
 
