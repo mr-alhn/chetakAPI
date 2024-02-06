@@ -28,10 +28,16 @@ router.post("/", validateCoupon, async (req, res) => {
       .json({ status: false, message: "Error", errors: errors.array() });
   }
 
-  const { coupon, type, qty, description } = req.body;
+  const { coupon, type, qty, value, description } = req.body;
 
   try {
-    const newCoupon = await Coupon.create({ coupon, type, qty, description });
+    const newCoupon = await Coupon.create({
+      coupon,
+      type,
+      qty,
+      value,
+      description,
+    });
     res.status(200).json({ status: true, message: "Coupon added", newCoupon });
   } catch (error) {
     console.error(error);
@@ -48,7 +54,7 @@ router.put("/:id", validateCoupon, async (req, res) => {
   }
 
   const couponId = req.params.id;
-  const { coupon, type, qty, description } = req.body;
+  const { coupon, type, qty, value, description } = req.body;
 
   try {
     const existingCoupon = await Coupon.findByPk(couponId);
@@ -62,6 +68,7 @@ router.put("/:id", validateCoupon, async (req, res) => {
     existingCoupon.coupon = coupon;
     existingCoupon.type = type;
     existingCoupon.qty = qty;
+    existingCoupon.value = value;
     existingCoupon.description = description;
 
     await existingCoupon.save();
@@ -96,6 +103,24 @@ router.delete("/:id", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/check", async (req, res) => {
+  try {
+    const coupon = req.query.coupon;
+
+    const hasCoupon = await Coupon.findOne({ where: { coupon } });
+
+    if (!hasCoupon) {
+      return res.status(500).json({ status: false, message: "Invalid Coupon" });
+    }
+
+    res
+      .status(200)
+      .json({ status: true, message: "Valid Coupon", coupon: hasCoupon });
+  } catch (e) {
+    res.status(500).json({ status: false, message: "Server Error" });
   }
 });
 

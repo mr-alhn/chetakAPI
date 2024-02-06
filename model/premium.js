@@ -27,6 +27,10 @@ const Premium = sequelize.define("premiums", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  trId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
 });
 
 module.exports = Premium;

@@ -1,4 +1,3 @@
-// coupon.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -14,6 +13,10 @@ const Coupon = sequelize.define("coupons", {
   },
   qty: {
     type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  value: {
+    type: DataTypes.FLOAT,
     allowNull: false,
   },
   description: {

@@ -6,15 +6,26 @@ const Book = require("../model/book");
 const authenticateToken = require("../middleware/userAuth");
 const Rating = require("../model/rating");
 const Cart = require("../model/cart");
-const Transaction = require("../model/transaction");
 const Premium = require("../model/premium");
 const SubLib = require("../model/subLib");
+const Coupon = require("../model/coupon");
+const Transaction = require("../model/transactions");
+const Order = require("../model/orders");
+const Plan = require("../model/plan");
 
 const validateLibraryItem = [
-  check("bookId").isNumeric().withMessage("Invalid bookId"),
-  check("orderId").notEmpty().withMessage("Invalid orderId"),
-  check("from").notEmpty().withMessage("from is required"),
+  check("traId").notEmpty().withMessage("Invalid orderId"),
 ];
+
+function generateOrderID() {
+  const chars = "0123456789";
+  let orderID = "";
+  for (let i = 0; i < 6; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    orderID += chars[randomIndex];
+  }
+  return orderID;
+}
 
 router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
   const errors = validationResult(req);
@@ -25,19 +36,77 @@ router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
   }
 
   const userId = req.user.user.id;
-  const { orderId } = req.body;
-
-  await Transaction.create({ type: "Book", traId: orderId });
+  const { traId, couponId } = req.body;
 
   try {
     const books = await Cart.findAll({ where: { userId } });
 
-    for (const book of books) {
-      await Library.create({
-        userId,
-        bookId: book.id,
-      });
+    if (books.length === 0) {
+      return res.status(401).json({ status: false, message: "Cart is Empty" });
     }
+
+    let finalAmount = 0;
+    let couponDiscount = 0;
+    const usingCoupon = false;
+    let coupon = {};
+    let message = "";
+    if (books.length == 1) {
+      message = "You have purchased a E-Book";
+    } else {
+      message = `You have purchased ${books.length} E-Books`;
+    }
+
+    if (couponId) {
+      coupon = await Coupon.findByPk(couponId);
+      if (!coupon) {
+        return res
+          .status(404)
+          .json({ status: false, message: "Coupon Not Found" });
+      }
+      usingCoupon = true;
+    }
+
+    const orderId = generateOrderID();
+
+    for (const book of books) {
+      const bookDetails = await Book.findByPk(book.bookId);
+      if (bookDetails) {
+        await Library.create({
+          userId,
+          bookId: book.bookId,
+          orderId: `#${orderId}`,
+          traId,
+        });
+        finalAmount += bookDetails.sellPrice;
+      }
+    }
+
+    if (usingCoupon) {
+      if (coupon.type == "fixed") {
+        couponDiscount = coupon.value;
+      } else {
+        couponDiscount = (finalAmount * coupon.value) / 100;
+      }
+    }
+
+    await Transaction.create({
+      userId,
+      amount: finalAmount - couponDiscount,
+      title: message,
+      orderId: `#${orderId}`,
+    });
+
+    await Order.create({
+      userId,
+      orderId: `#${orderId}`,
+      totalAmount: finalAmount,
+      discount: couponDiscount,
+      finalAmount: finalAmount - couponDiscount,
+      traId,
+      type: "book",
+    });
+
+    await Cart.destroy({ where: { userId } });
 
     res.status(200).json({
       status: true,
@@ -85,7 +154,11 @@ router.get("/", authenticateToken, async (req, res) => {
     const subscription = await Premium.findAll({ where: { userId } });
     const plansBooks = [];
     for (const sub of subscription) {
-      const libs = await SubLib.findAll({ where: { userId, planId: sub.id } });
+      const libs = await SubLib.findAll({
+        where: { userId, planId: sub.planId },
+      });
+
+      const plan = await Plan.findByPk(sub.planId);
 
       const books = [];
       for (const lib of libs) {
@@ -108,19 +181,36 @@ router.get("/", authenticateToken, async (req, res) => {
           totalRating: ratings.length,
           averageRating: parseFloat(averageRating).toFixed(1),
         };
-        books.push({ ...book.toJSON });
+        delete finalBook.createdAt;
+        delete finalBook.updatedAt;
+        books.push(finalBook);
       }
-      plansBooks.push({ ...sub.toJSON(), books });
+      delete sub.planId;
+      delete plan.benefits;
+      const finalPlan = {
+        ...sub.toJSON(),
+        plan: { ...plan.toJSON(), benefits: JSON.parse(plan.benefits) },
+        books,
+      };
+      delete finalPlan.planId;
+      delete finalPlan.userId;
+      delete finalPlan.orderId;
+      delete finalPlan.trId;
+      delete finalPlan.createdAt;
+      delete finalPlan.updatedAt;
+      delete finalPlan.id;
+      delete finalPlan.status;
+      delete finalPlan.purchasedAt;
+      delete finalPlan.expireOn;
+      plansBooks.push(finalPlan);
     }
 
-    res
-      .status(200)
-      .json({
-        status: true,
-        message: "OK",
-        libraryItems: items,
-        premiumBook: plansBooks,
-      });
+    res.status(200).json({
+      status: true,
+      message: "OK",
+      libraryItems: items,
+      premiumBook: plansBooks,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });

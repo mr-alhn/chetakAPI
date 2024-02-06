@@ -67,7 +67,14 @@ router.get("/", authenticateToken, async (req, res) => {
         const averageRating =
           ratings.length > 0 ? totalRating / ratings.length : 0;
         book.averageRating = averageRating;
-        const finalBook = { ...book.dataValues, averageRating };
+        const finalBook = {
+          ...book.toJSON(),
+          pdf: null,
+          image: JSON.parse(book.image),
+          sample: JSON.parse(book.sample),
+          tag: JSON.parse(book.tag),
+          averageRating,
+        };
         const finalCart = { ...item.dataValues, book: finalBook };
         finalItems.push(finalCart);
       }

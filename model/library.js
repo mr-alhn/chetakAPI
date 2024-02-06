@@ -10,6 +10,14 @@ const Library = sequelize.define("libraries", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  orderId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  traId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
 });
 
 module.exports = Library;

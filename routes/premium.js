@@ -3,7 +3,6 @@ const router = express.Router();
 const { check, validationResult } = require("express-validator");
 const Premium = require("../model/premium");
 const authenticateToken = require("../middleware/userAuth");
-const Transaction = require("../model/transaction");
 
 const validatePremiumSubscription = [
   check("planId").isNumeric().withMessage("Invalid planId"),
@@ -24,7 +23,6 @@ router.post(
 
     const userId = req.user.user.id;
     const { planId, orderId } = req.body;
-    await Transaction.create({ type: "Subscription", traId: orderId });
 
     try {
       const existingPremiumSubscription = await Premium.findOne({

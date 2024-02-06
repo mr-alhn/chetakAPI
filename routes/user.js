@@ -109,6 +109,22 @@ router.get("/profile", authenticateToken, (req, res) => {
   });
 });
 
+router.put("/update/token", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user.id;
+    const token = req.query.token;
+
+    const user = await User.findByPk(userId);
+    user.notificationToken = token;
+    await user.save();
+
+    res.status(201).json({ status: true, message: "Success" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Erros" });
+  }
+});
+
 router.get("/user/forgot", async (req, res) => {
   const query = req.query.query;
 

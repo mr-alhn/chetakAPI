@@ -12,7 +12,13 @@ const Premium = require("../model/premium");
 const User = require("../model/user");
 const SubAdmin = require("../model/subAdmin");
 const SubLib = require("../model/subLib");
+const Order = require("../model/orders");
+const Transaction = require("../model/transactions");
+const Query = require("../model/query");
+const Library = require("../model/library");
+const sequelize = require("../config/db");
 const { check, validationResult } = require("express-validator");
+const moment = require("moment");
 
 //Firebase Start
 const admin = require("firebase-admin");
@@ -73,7 +79,7 @@ router.get("/books", authenticateToken, async (req, res) => {
         image: JSON.parse(book.image),
         sample: JSON.parse(book.sample),
         tag: JSON.parse(book.tag),
-        pdf: book.pdf.replace(/"/g, ""),
+        pdf: null,
         totalRating: ratings.length,
         averageRating: parseFloat(averageRating).toFixed(1),
       };
@@ -124,7 +130,7 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
       image: JSON.parse(book.image),
       sample: JSON.parse(book.sample),
       tag: JSON.parse(book.tag),
-      pdf: book.pdf.replace(/"/g, ""),
+      pdf: null,
       averageRating: parseFloat(averageRating).toFixed(1),
       userRating,
       overAllRating,
@@ -232,7 +238,7 @@ router.get("/coupon", authenticateToken, async (req, res) => {
 
 const validatePremiumSubscription = [
   check("planId").isNumeric().withMessage("Invalid planId"),
-  check("orderId").isString().withMessage("Invalid orderId"),
+  check("traId").isString().withMessage("Invalid orderId"),
 ];
 
 function calculatePurchaseAndExpireDate(months) {
@@ -256,6 +262,16 @@ function calculatePurchaseAndExpireDate(months) {
   };
 }
 
+function generateOrderID() {
+  const chars = "0123456789";
+  let orderID = "";
+  for (let i = 0; i < 6; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    orderID += chars[randomIndex];
+  }
+  return orderID;
+}
+
 router.post(
   "/plans/buy",
   authenticateToken,
@@ -269,7 +285,7 @@ router.post(
     }
 
     const userId = req.user.user.id;
-    const { planId, orderId } = req.body;
+    const { planId, traId } = req.body;
 
     try {
       const existingPremiumSubscription = await Premium.findOne({
@@ -295,21 +311,39 @@ router.post(
       const { purchaseDate, expireDate } = calculatePurchaseAndExpireDate(
         plan.duration
       );
-      console.log(expireDate);
 
+      const orderId = `#${generateOrderID()}`;
       const status = true;
-      const newPremiumSubscription = await Premium.create({
+      await Premium.create({
         userId,
         planId,
         orderId,
         status,
         purchasedAt: purchaseDate,
         expireOn: expireDate,
+        trId: traId,
       });
+
+      await Transaction.create({
+        userId,
+        amount: plan.finalPrice,
+        title: `You have purchased a Premium Plan Named "${plan.title}"`,
+        orderId: orderId,
+      });
+
+      await Order.create({
+        userId,
+        orderId,
+        totalAmount: plan.price,
+        discount: 0,
+        finalAmount: plan.finalPrice,
+        traId,
+        type: "plan",
+      });
+
       res.status(200).json({
         status: true,
         message: "Premium subscription added",
-        newPremiumSubscription,
       });
     } catch (error) {
       console.error(error);
@@ -390,9 +424,149 @@ router.delete("/subLib/:id", authenticateToken, async (req, res) => {
       return res.status(200).json({ status: true, message: "Success" });
     }
 
-    await subLib.distroy();
+    await subLib.destroy();
 
     res.status(200).json({ status: true, message: "Success" });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/transactions", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.user.id;
+    const transactions = await Transaction.findAll({ where: { userId } });
+
+    const finalTra = [];
+    for (const tra of transactions) {
+      const tran = {
+        ...tra.toJSON(),
+        date: moment(tra.createdAt).format("On DD MMM YYYY"),
+        title: tra.title.replace(/\\"/g, '"'),
+      };
+      delete tran.userId;
+      delete tran.createdAt;
+      delete tran.updatedAt;
+      finalTra.push(tran);
+    }
+
+    finalTra.reverse();
+    res.status(200).json({
+      status: true,
+      message: "OK",
+      transactions: finalTra,
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+const validationQuery = [
+  check("name").isString().withMessage("name is required"),
+  check("phone").isString().withMessage("phone is required"),
+  check("query").isString().withMessage("query is required"),
+];
+router.post("/query", authenticateToken, validationQuery, async (req, res) => {
+  try {
+    const userId = req.user.user.id;
+    const { name, phone, query } = req.body;
+
+    await Query.create({ userId, name, phone, query });
+    res.status(200).json({ status: true, message: "Query Submitted" });
+  } catch (e) {
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/reports", async (req, res) => {
+  try {
+    const counts = await Order.findAll({
+      attributes: [
+        "type",
+        [sequelize.fn("COUNT", sequelize.col("*")), "totalCount"],
+        [sequelize.fn("SUM", sequelize.col("finalAmount")), "totalFinalAmount"],
+      ],
+      group: ["type"],
+    });
+    const items = counts.map((item) => {
+      item.dataValues.totalFinalAmount = parseFloat(
+        item.dataValues.totalFinalAmount
+      ).toFixed(2);
+      return item;
+    });
+
+    const queries = await Query.findAll();
+
+    res.json({ status: true, items, queries });
+  } catch (e) {
+    console.error("Error:", e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/reports/books", async (req, res) => {
+  try {
+    const orders = await Order.findAll({ where: { type: "book" } });
+
+    const finalList = [];
+    for (const order of orders) {
+      const user = await User.findByPk(order.userId);
+
+      const newBooks = [];
+      const librarys = await Library.findAll({
+        where: { orderId: order.orderId },
+      });
+      for (const lib of librarys) {
+        const book = await Book.findByPk(lib.bookId);
+        newBooks.push(book);
+      }
+
+      const newOrder = {
+        ...order.toJSON(),
+        user,
+        date: moment(order.createdAt).format("MMM DD,YYYY"),
+        books: newBooks,
+      };
+      delete newOrder.createdAt;
+      delete newOrder.updatedAt;
+      delete newOrder.type;
+      delete newOrder.userId;
+      finalList.push(newOrder);
+    }
+
+    res.status(200).json({ status: true, message: "OK", orders: finalList });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/reports/subs", async (req, res) => {
+  try {
+    const items = await Order.findAll({ where: { type: "plan" } });
+
+    const finalList = [];
+    for (const item of items) {
+      const user = await User.findByPk(item.userId);
+
+      const prem = await Premium.findOne({ where: { orderId: item.orderId } });
+      const plan = await Plan.findByPk(prem.planId);
+      const newItem = {
+        ...item.toJSON(),
+        user,
+        plan,
+        date: moment(item.createdAt).format("MMM DD,YYYY"),
+      };
+      delete newItem.createdAt;
+      delete newItem.updatedAt;
+      delete newItem.type;
+      delete newItem.userId;
+      finalList.push(newItem);
+    }
+
+    res.status(200).json({ status: true, message: "OK", items: finalList });
   } catch (e) {
     console.log(e);
     res.status(500).json({ status: false, message: "Server Error" });
