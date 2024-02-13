@@ -363,7 +363,7 @@ router.post("/notification", async (req, res) => {
       for (const user of users) {
         const plan = await Premium.findOne({ where: { userId: user.id } });
         if (!plan) {
-          tokens.push(user.toJson());
+          tokens.push(user.toJSON());
         }
       }
     } else if (sendTo == "paidUsers") {
@@ -371,7 +371,7 @@ router.post("/notification", async (req, res) => {
       for (const user of users) {
         const plan = await Premium.findOne({ where: { userId: user.id } });
         if (plan) {
-          tokens.push(user.toJson());
+          tokens.push(user.toJSON());
         }
       }
     } else {
@@ -391,7 +391,19 @@ router.post("/notification", async (req, res) => {
           },
           token: token.notificationToken,
         };
-        await admin.messaging().send(message);
+        try {
+          await admin.messaging().send(message);
+          console.log(
+            "Notification sent successfully to token:",
+            token.notificationToken
+          );
+        } catch (error) {
+          console.error(
+            "Error sending notification to token:",
+            token.notificationToken,
+            error
+          );
+        }
       }
     }
 
