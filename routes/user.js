@@ -80,7 +80,7 @@ router.post("/login", async (req, res) => {
     if (!user) {
       return res
         .status(401)
-        .json({ status: false, message: "Invalid phone number or password" });
+        .json({ status: false, message: "Phone number is not registered" });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
@@ -88,7 +88,7 @@ router.post("/login", async (req, res) => {
     if (!passwordMatch) {
       return res
         .status(401)
-        .json({ status: false, message: "Invalid phone number or password" });
+        .json({ status: false, message: "Incorrect password" });
     }
 
     const token = generateToken({ user });
