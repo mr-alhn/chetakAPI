@@ -121,7 +121,7 @@ router.put("/update/token", authenticateToken, async (req, res) => {
     res.status(201).json({ status: true, message: "Success" });
   } catch (e) {
     console.log(e);
-    res.status(500).json({ status: false, message: "Server Erros" });
+    res.status(500).json({ status: false, message: "Server Error" });
   }
 });
 

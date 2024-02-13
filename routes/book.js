@@ -3,6 +3,7 @@ const router = express.Router();
 const { check, validationResult } = require("express-validator");
 const Book = require("../model/book");
 const Rating = require("../model/rating");
+const Notification = require("../model/notification");
 
 const validateBook = [
   check("image").isArray().withMessage("Image must be an array of URLs"),
@@ -61,6 +62,14 @@ router.post("/", validateBook, async (req, res) => {
 
   try {
     const newBook = await Book.create(req.body);
+
+    if (req.body.isPremium == false) {
+      await Notification.create({
+        bookId: newBook.id,
+        title: `The Admin have added 1 new books named ${newBook.name}`,
+      });
+    }
+
     res.status(200).json({ status: true, message: "Book added", newBook });
   } catch (error) {
     console.error(error);

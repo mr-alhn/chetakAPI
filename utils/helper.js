@@ -23,6 +23,7 @@ const moment = require("moment");
 //Firebase Start
 const admin = require("firebase-admin");
 const serviceAccount = require("../chetak-books-firebase-adminsdk-jmjqy-4ce293f047.json");
+const Notification = require("../model/notification");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://chetak-books-default-rtdb.firebaseio.com/",
@@ -567,6 +568,16 @@ router.get("/reports/subs", async (req, res) => {
     }
 
     res.status(200).json({ status: true, message: "OK", items: finalList });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/notifications", authenticateToken, async (req, res) => {
+  try {
+    const notifications = await Notification.findAll();
+    res.status(200).json({ status: true, message: "OK", notifications });
   } catch (e) {
     console.log(e);
     res.status(500).json({ status: false, message: "Server Error" });
