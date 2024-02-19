@@ -53,7 +53,7 @@ router.post("/upload", upload.single("file"), (req, res) => {
     .json({ status: true, message: "File uploaded successfully", fileUrl });
 });
 
-router.get("/banner", authenticateToken, async (req, res) => {
+router.get("/banner", async (req, res) => {
   try {
     const banners = await Banner.findAll();
     res.status(200).json({ status: true, message: "OK", banners });
@@ -63,7 +63,7 @@ router.get("/banner", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/books", authenticateToken, async (req, res) => {
+router.get("/books", async (req, res) => {
   try {
     const books = await Book.findAll({ where: { isPremium: false } });
     const recommended = [];
@@ -107,7 +107,7 @@ router.get("/books", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/books/:id", authenticateToken, async (req, res) => {
+router.get("/books/:id", async (req, res) => {
   const id = req.params.id;
   try {
     const userId = req.user.user.id;
@@ -162,7 +162,7 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/plans", authenticateToken, async (req, res) => {
+router.get("/plans", async (req, res) => {
   try {
     const userId = req.user.user.id;
     const plans = await Plan.findAll();
@@ -227,7 +227,7 @@ router.get("/plans", authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/coupon", authenticateToken, async (req, res) => {
+router.get("/coupon", async (req, res) => {
   try {
     const coupons = await Coupon.findAll();
     res.status(200).json({ status: true, message: "OK", coupons });
