@@ -110,7 +110,7 @@ router.get("/books", async (req, res) => {
 router.get("/books/:id", async (req, res) => {
   const id = req.params.id;
   try {
-    const userId = req.user.user.id;
+    const userId = req.user ? req.user.user.id : 0;
     const book = await Book.findByPk(id);
 
     const userRating = [];
@@ -164,7 +164,7 @@ router.get("/books/:id", async (req, res) => {
 
 router.get("/plans", async (req, res) => {
   try {
-    const userId = req.user.user.id;
+    const userId = req.user ? req.user.user.id : 0;
     const plans = await Plan.findAll();
     const formattedPlans = plans.map((plan) => {
       const formattedBenefits = JSON.parse(plan.benefits);
