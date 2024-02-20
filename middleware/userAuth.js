@@ -4,8 +4,12 @@ const secretKey = "RGVlcGFrS3VzaHdhaGFBbGhuOTM5OTM2OTg1NA==";
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
+  const url = req.url;
 
   if (!authHeader) {
+    if (url.includes("/plans") || url.includes("/books")) {
+      return next();
+    }
     return res.status(401).json({ status: false, message: "Access Denied" });
   }
 

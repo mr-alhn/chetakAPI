@@ -107,7 +107,7 @@ router.get("/books", async (req, res) => {
   }
 });
 
-router.get("/books/:id", async (req, res) => {
+router.get("/books/:id", authenticateToken, async (req, res) => {
   const id = req.params.id;
   try {
     const userId = req.user ? req.user.user.id : 0;
@@ -162,7 +162,7 @@ router.get("/books/:id", async (req, res) => {
   }
 });
 
-router.get("/plans", async (req, res) => {
+router.get("/plans", authenticateToken, async (req, res) => {
   try {
     const userId = req.user ? req.user.user.id : 0;
     const plans = await Plan.findAll();
