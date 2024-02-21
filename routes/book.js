@@ -4,6 +4,7 @@ const { check, validationResult } = require("express-validator");
 const Book = require("../model/book");
 const Rating = require("../model/rating");
 const Notification = require("../model/notification");
+const Author = require("../model/author");
 
 const validateBook = [
   check("image").isArray().withMessage("Image must be an array of URLs"),
@@ -82,6 +83,8 @@ router.get("/:id", async (req, res) => {
   try {
     const book = await Book.findByPk(id);
 
+    const author = await Author.findByPk(book.author);
+
     const overAllRating = [];
     let count5 = 0,
       count4 = 0,
@@ -120,6 +123,7 @@ router.get("/:id", async (req, res) => {
 
     const finalBook = {
       ...book.toJSON(),
+      author: author.toJSON(),
       image: JSON.parse(book.image),
       sample: JSON.parse(book.sample),
       tag: JSON.parse(book.tag),
