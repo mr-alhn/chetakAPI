@@ -12,6 +12,7 @@ const Coupon = require("../model/coupon");
 const Transaction = require("../model/transactions");
 const Order = require("../model/orders");
 const Plan = require("../model/plan");
+const Author = require("../model/author");
 
 const validateLibraryItem = [
   check("traId").notEmpty().withMessage("Invalid orderId"),
@@ -78,6 +79,13 @@ router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
           traId,
         });
         finalAmount += bookDetails.sellPrice;
+        const author = await Author.findByPk(bookDetails.author);
+        if (author) {
+          const authorHas = author.royalty;
+          const authorEarned = (bookDetails.sellPrice * author.percent) / 100;
+          author.royalty = authorHas + authorEarned;
+          await author.save();
+        }
       }
     }
 
@@ -89,9 +97,11 @@ router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
       }
     }
 
+    const paidAmount = finalAmount - couponDiscount;
+
     await Transaction.create({
       userId,
-      amount: finalAmount - couponDiscount,
+      amount: paidAmount,
       title: message,
       orderId: `#${orderId}`,
     });
@@ -101,7 +111,7 @@ router.post("/", authenticateToken, validateLibraryItem, async (req, res) => {
       orderId: `#${orderId}`,
       totalAmount: finalAmount,
       discount: couponDiscount,
-      finalAmount: finalAmount - couponDiscount,
+      finalAmount: paidAmount,
       traId,
       type: "book",
     });

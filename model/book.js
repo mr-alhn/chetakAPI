@@ -11,7 +11,7 @@ const Book = sequelize.define("books", {
     allowNull: false,
   },
   author: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   sample: {

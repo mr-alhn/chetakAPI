@@ -24,6 +24,7 @@ const moment = require("moment");
 const admin = require("firebase-admin");
 const serviceAccount = require("../chetak-books-firebase-adminsdk-jmjqy-4ce293f047.json");
 const Notification = require("../model/notification");
+const Author = require("../model/author");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://chetak-books-default-rtdb.firebaseio.com/",
@@ -113,6 +114,8 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
     const userId = req.user ? req.user.user.id : 0;
     const book = await Book.findByPk(id);
 
+    const author = await Author.findByPk(book.author);
+
     const userRating = [];
     const overAllRating = [];
 
@@ -135,6 +138,7 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
       averageRating: parseFloat(averageRating).toFixed(1),
       userRating,
       overAllRating,
+      author: author.name,
     };
 
     const similarBooks = [];

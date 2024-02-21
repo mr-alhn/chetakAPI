@@ -57,6 +57,7 @@ app.use("/premium", require("./routes/premium"));
 app.use("/admin", require("./routes/admin"));
 app.use("/dashboard", require("./routes/dashboard"));
 app.use("/subAdmin", require("./routes/subAdmin"));
+app.use("/authors", require("./routes/author"));
 
 //Helper
 app.use("/", require("./utils/helper"));
