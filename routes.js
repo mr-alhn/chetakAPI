@@ -2,24 +2,12 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 const cors = require("cors");
+app.use(cors());
 
 const validVerificationKeys = [
   "RGVlcGFrS3VzaHdhaGE5Mzk5MzY5ODU0",
   "RGVlcGFrS3VzaHdhaGE5Mzk5MzY5ODU0QWxoblBvb2ph",
 ];
-
-// const validateVerificationKey = (req, res, next) => {
-//   const verificationKey = req.headers["verifyme"];
-
-//   if (!verificationKey || !validVerificationKeys.includes(verificationKey)) {
-//     return res.status(403).json({
-//       status: false,
-//       message: "Access Denied🙅",
-//     });
-//   }
-
-//   next();
-// };
 
 const validateVerificationKey = (req, res, next) => {
   const verificationKey = req.headers["verifyme"];
@@ -39,7 +27,6 @@ const validateVerificationKey = (req, res, next) => {
 };
 
 app.use(validateVerificationKey);
-app.use(cors());
 app.use("/uploads", express.static(__dirname + "/uploads"));
 
 //
