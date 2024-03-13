@@ -66,7 +66,7 @@ router.get("/banner", async (req, res) => {
 
 router.get("/books", async (req, res) => {
   try {
-    const books = await Book.findAll({ where: { isPremium: false } });
+    const books = await Book.findAll();
     const recommended = [];
     const trending = [];
 
