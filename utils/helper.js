@@ -157,7 +157,14 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
         );
         const averageRating =
           ratings.length > 0 ? totalRating / ratings.length : 0;
-        const finalItem = { ...item.dataValues, averageRating };
+        const finalItem = {
+          ...item.dataValues,
+          averageRating,
+          image: JSON.parse(item.image),
+          sample: JSON.parse(item.sample),
+          tag: JSON.parse(item.tag),
+          pdf: null,
+        };
         similarBooks.push(finalItem);
       }
     }
