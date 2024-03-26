@@ -25,6 +25,7 @@ const admin = require("firebase-admin");
 const serviceAccount = require("../chetak-books-firebase-adminsdk-jmjqy-4ce293f047.json");
 const Notification = require("../model/notification");
 const Author = require("../model/author");
+const { Op } = require("sequelize");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://chetak-books-default-rtdb.firebaseio.com/",
@@ -142,7 +143,11 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
     };
 
     const similarBooks = [];
-    const books = await Book.findAll({ where: { author: finalBook.author } });
+    const books = await Book.findAll({
+      where: {
+        [Op.or]: [{ category: finalBook.category }, { author: author.id }],
+      },
+    });
     for (const item of books) {
       if (item.id != id) {
         const ratings = await Rating.findAll({ where: { bookId: item.id } });
