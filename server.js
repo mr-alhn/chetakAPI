@@ -21,18 +21,18 @@ server.listen(port, () => {
   console.log(`Server started on http://localhost:${port}`);
 });
 
-const privateKeyPath = "/home/ubuntu/chetak/private.key";
-const certificatePath = "/home/ubuntu/chetak/certificate.crt";
-const caPath = "/home/ubuntu/chetak/ca_bundle.crt";
+// const privateKeyPath = "/home/ubuntu/chetak/private.key";
+// const certificatePath = "/home/ubuntu/chetak/certificate.crt";
+// const caPath = "/home/ubuntu/chetak/ca_bundle.crt";
 
-const credentials = {
-  key: fs.readFileSync(privateKeyPath, "utf8"),
-  cert: fs.readFileSync(certificatePath, "utf8"),
-  ca: fs.readFileSync(caPath, "utf8"),
-};
+// const credentials = {
+//   key: fs.readFileSync(privateKeyPath, "utf8"),
+//   cert: fs.readFileSync(certificatePath, "utf8"),
+//   ca: fs.readFileSync(caPath, "utf8"),
+// };
 
-const httpsServer = https.createServer(credentials, app);
+// const httpsServer = https.createServer(credentials, app);
 
-httpsServer.listen(PORT_HTTPS, () => {
-  console.log(`HTTPS Server running on port ${PORT_HTTPS}`);
-});
+// httpsServer.listen(PORT_HTTPS, () => {
+//   console.log(`HTTPS Server running on port ${PORT_HTTPS}`);
+// });

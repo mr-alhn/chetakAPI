@@ -600,4 +600,51 @@ router.get("/notifications", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/search", async (req, res) => {
+  try {
+    const query = req.query.query || "none";
+    const category = req.query.category || "none";
+    const books = await Book.findAll();
+
+    const finalbooks = [];
+    for (const book of books) {
+      const ratings = await Rating.findAll({ where: { bookId: book.id } });
+      const totalRating = ratings.reduce((sum, rating) => sum + rating.rate, 0);
+      const averageRating =
+        ratings.length > 0 ? totalRating / ratings.length : 0;
+      const finalBook = {
+        ...book.toJSON(),
+        image: JSON.parse(book.image),
+        sample: JSON.parse(book.sample),
+        tag: JSON.parse(book.tag),
+        pdf: null,
+        totalRating: ratings.length,
+        averageRating: parseFloat(averageRating).toFixed(1),
+      };
+
+      const queryMatched =
+        query === "none" ||
+        finalBook.name.toLowerCase().includes(query.toLowerCase()) ||
+        finalBook.author.toLowerCase().includes(query.toLowerCase()) ||
+        finalBook.category.toLowerCase().includes(query.toLowerCase());
+      const catMatched =
+        category === "none" ||
+        (finalBook.category &&
+          finalBook.category.toLowerCase().includes(category.toLowerCase()));
+
+      if (queryMatched && catMatched) {
+        finalbooks.push(finalBook);
+      }
+    }
+    res.status(200).json({
+      status: true,
+      message: "OK",
+      books: finalbooks,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ status: false, message: "Server Error" });
+  }
+});
+
 module.exports = router;

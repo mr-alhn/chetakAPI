@@ -5,10 +5,12 @@ const Book = require("../model/book");
 const Rating = require("../model/rating");
 const Notification = require("../model/notification");
 const Author = require("../model/author");
+const { Sequelize } = require("sequelize");
 
 const validateBook = [
   check("image").isArray().withMessage("Image must be an array of URLs"),
   check("name").notEmpty().withMessage("Name is required"),
+  check("category").notEmpty().withMessage("category is required"),
   check("author").notEmpty().withMessage("Author is required"),
   check("sample").isArray().withMessage("Sample must be an array of URLs"),
   check("tag").isArray().withMessage("Tag must be an array of strings"),
@@ -47,6 +49,24 @@ router.get("/", async (req, res) => {
       message: "OK",
       books: finalbooks,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ status: false, message: "Server Error" });
+  }
+});
+
+router.get("/all/category", async (req, res) => {
+  try {
+    const categories = await Book.findAll({
+      attributes: [
+        [Sequelize.fn("DISTINCT", Sequelize.col("category")), "category"],
+      ],
+      raw: true,
+    });
+    const distinctCategories = categories.map((category) => category.category);
+    res
+      .status(200)
+      .json({ status: true, message: "OK", categories: distinctCategories });
   } catch (error) {
     console.error(error);
     res.status(500).send({ status: false, message: "Server Error" });
@@ -157,6 +177,7 @@ router.put("/:id", validateBook, async (req, res) => {
     tag,
     description,
     price,
+    category,
     sellPrice,
     isTending,
     isRecommended,
@@ -178,6 +199,7 @@ router.put("/:id", validateBook, async (req, res) => {
     existingBook.tag = tag;
     existingBook.description = description;
     existingBook.price = price;
+    existingBook.category = category;
     existingBook.sellPrice = sellPrice;
     existingBook.isTending = isTending;
     existingBook.isRecommended = isRecommended;

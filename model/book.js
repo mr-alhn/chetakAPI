@@ -26,6 +26,11 @@ const Book = sequelize.define("books", {
     type: DataTypes.JSON,
     allowNull: false,
   },
+  category: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: "Hindi Book",
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: false,
