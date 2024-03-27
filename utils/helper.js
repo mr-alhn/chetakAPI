@@ -637,7 +637,6 @@ router.get("/search", async (req, res) => {
       const queryMatched =
         query === "none" ||
         finalBook.name.toLowerCase().includes(query.toLowerCase()) ||
-        finalBook.author.toLowerCase().includes(query.toLowerCase()) ||
         finalBook.category.toLowerCase().includes(query.toLowerCase());
       const catMatched =
         category === "none" ||
