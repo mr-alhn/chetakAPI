@@ -4,6 +4,13 @@ app.use(express.json());
 const cors = require("cors");
 app.use(cors());
 
+app.get(
+  "/.well-known/pki-validation/C12F823A532A93BDF600B88985BDE29B.txt",
+  (req, res) => {
+    res.sendFile("./C12F823A532A93BDF600B88985BDE29B.txt");
+  }
+);
+
 const validVerificationKeys = [
   "RGVlcGFrS3VzaHdhaGE5Mzk5MzY5ODU0",
   "RGVlcGFrS3VzaHdhaGE5Mzk5MzY5ODU0QWxoblBvb2ph",

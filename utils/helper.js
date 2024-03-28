@@ -79,9 +79,9 @@ router.get("/books", async (req, res) => {
         ratings.length > 0 ? totalRating / ratings.length : 0;
       const finalBook = {
         ...book.toJSON(),
-        image: JSON.parse(book.image),
-        sample: JSON.parse(book.sample),
-        tag: JSON.parse(book.tag),
+        image: book.image,
+        sample: book.sample,
+        tag: book.tag,
         pdf: null,
         totalRating: ratings.length,
         averageRating: parseFloat(averageRating).toFixed(1),
@@ -132,9 +132,9 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
 
     const finalBook = {
       ...book.toJSON(),
-      image: JSON.parse(book.image),
-      sample: JSON.parse(book.sample),
-      tag: JSON.parse(book.tag),
+      image: book.image,
+      sample: book.sample,
+      tag: book.tag,
       pdf: null,
       averageRating: parseFloat(averageRating).toFixed(1),
       userRating,
@@ -160,9 +160,9 @@ router.get("/books/:id", authenticateToken, async (req, res) => {
         const finalItem = {
           ...item.dataValues,
           averageRating,
-          image: JSON.parse(item.image),
-          sample: JSON.parse(item.sample),
-          tag: JSON.parse(item.tag),
+          image: item.image,
+          sample: item.sample,
+          tag: item.tag,
           pdf: null,
         };
         similarBooks.push(finalItem);
@@ -183,7 +183,7 @@ router.get("/plans", authenticateToken, async (req, res) => {
     const userId = req.user ? req.user.user.id : 0;
     const plans = await Plan.findAll();
     const formattedPlans = plans.map((plan) => {
-      const formattedBenefits = JSON.parse(plan.benefits);
+      const formattedBenefits = plan.benefits;
       return {
         ...plan.toJSON(),
         benefits: formattedBenefits,
@@ -213,9 +213,9 @@ router.get("/plans", authenticateToken, async (req, res) => {
             ratings.length > 0 ? totalRating / ratings.length : 0;
           const finalBook = {
             ...book.toJSON(),
-            image: JSON.parse(book.image),
-            sample: JSON.parse(book.sample),
-            tag: JSON.parse(book.tag),
+            image: book.image,
+            sample: book.sample,
+            tag: book.tag,
             pdf: book.pdf.replace(/"/g, ""),
             totalRating: ratings.length,
             averageRating: parseFloat(averageRating).toFixed(1),
@@ -626,9 +626,9 @@ router.get("/search", async (req, res) => {
         ratings.length > 0 ? totalRating / ratings.length : 0;
       const finalBook = {
         ...book.toJSON(),
-        image: JSON.parse(book.image),
-        sample: JSON.parse(book.sample),
-        tag: JSON.parse(book.tag),
+        image: book.image,
+        sample: book.sample,
+        tag: book.tag,
         pdf: null,
         totalRating: ratings.length,
         averageRating: parseFloat(averageRating).toFixed(1),

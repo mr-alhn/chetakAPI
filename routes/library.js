@@ -149,9 +149,9 @@ router.get("/", authenticateToken, async (req, res) => {
           ratings.length > 0 ? totalRating / ratings.length : 0;
         const finalBook = {
           ...product.toJSON(),
-          image: JSON.parse(product.image),
-          sample: JSON.parse(product.sample),
-          tag: JSON.parse(product.tag),
+          image: product.image,
+          sample: product.sample,
+          tag: product.tag,
           pdf: product.pdf.replace(/"/g, ""),
           totalRating: ratings.length,
           averageRating: parseFloat(averageRating).toFixed(1),
@@ -184,9 +184,9 @@ router.get("/", authenticateToken, async (req, res) => {
           ratings.length > 0 ? totalRating / ratings.length : 0;
         const finalBook = {
           ...book.toJSON(),
-          image: JSON.parse(book.image),
-          sample: JSON.parse(book.sample),
-          tag: JSON.parse(book.tag),
+          image: book.image,
+          sample: book.sample,
+          tag: book.tag,
           pdf: book.pdf.replace(/"/g, ""),
           totalRating: ratings.length,
           averageRating: parseFloat(averageRating).toFixed(1),
@@ -199,7 +199,7 @@ router.get("/", authenticateToken, async (req, res) => {
       delete plan.benefits;
       const finalPlan = {
         ...sub.toJSON(),
-        plan: { ...plan.toJSON(), benefits: JSON.parse(plan.benefits) },
+        plan: { ...plan.toJSON(), benefits: plan.benefits },
         books,
       };
       delete finalPlan.planId;

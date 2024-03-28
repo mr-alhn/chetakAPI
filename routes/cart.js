@@ -70,9 +70,9 @@ router.get("/", authenticateToken, async (req, res) => {
         const finalBook = {
           ...book.toJSON(),
           pdf: null,
-          image: JSON.parse(book.image),
-          sample: JSON.parse(book.sample),
-          tag: JSON.parse(book.tag),
+          image: book.image,
+          sample: book.sample,
+          tag: book.tag,
           averageRating,
         };
         const finalCart = { ...item.dataValues, book: finalBook };

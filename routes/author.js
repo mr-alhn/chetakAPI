@@ -81,9 +81,9 @@ router.get("/:id", async (req, res) => {
         ratings.length > 0 ? totalRating / ratings.length : 0;
       const finalBook = {
         ...book.toJSON(),
-        image: JSON.parse(book.image),
-        sample: JSON.parse(book.sample),
-        tag: JSON.parse(book.tag),
+        image: book.image,
+        sample: book.sample,
+        tag: book.tag,
         pdf: book.pdf.replace(/"/g, ""),
         totalRating: ratings.length,
         averageRating: parseFloat(averageRating).toFixed(1),

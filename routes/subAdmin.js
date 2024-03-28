@@ -39,13 +39,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const admins = await SubAdmin.findAll();
-
-    const subAdmins = [];
-
-    for (const admin of admins) {
-      subAdmins.push({ ...admin.toJSON(), role: JSON.parse(admin.role) });
-    }
-    res.status(200).json({ status: true, message: "OK", subAdmins });
+    res.status(200).json({ status: true, message: "OK", subAdmins: admins });
   } catch (e) {
     console.log(e);
     res.status(500).json({ status: false, message: "Server Error" });
@@ -64,7 +58,7 @@ router.post("/login", async (req, res) => {
         .json({ status: true, message: "Incorrect phone number" });
     }
 
-    admin.role = JSON.parse(admin.role);
+    admin.role = admin.role;
 
     res
       .status(200)
